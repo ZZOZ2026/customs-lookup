@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>품목분류 사례 조회 | 근원 관세컨설팅 그룹</title>
+<style>
+  :root {
+    --navy: #1a2e4a;
+    --navy-mid: #243d62;
+    --accent: #2563a8;
+    --accent-light: #e8f0fb;
+    --border: #d0dce8;
+    --bg: #f5f7fa;
+    --white: #ffffff;
+    --text: #1e2d40;
+    --text-sub: #5a718a;
+    --row-hover: #f0f5fc;
+    --shadow: 0 2px 12px rgba(26,46,74,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR','Apple SD Gothic Neo',sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  .header { background: var(--navy); padding: 18px 32px; display: flex; align-items: center; gap: 14px; border-bottom: 3px solid var(--accent); }
+  .header-logo { color: #fff; font-size: 11px; opacity: 0.6; letter-spacing: 0.05em; }
+  .header-title { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+  .header-sep { color: rgba(255,255,255,0.3); font-size: 16px; }
+
+  .tabs-bar { background: var(--white); border-bottom: 2px solid var(--border); padding: 0 24px; display: flex; }
+  .tab-btn { padding: 14px 28px; border: none; background: none; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-sub); border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.2s; white-space: nowrap; }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--text); background: var(--bg); }
+
+  .search-panel { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px 16px; margin: 20px 24px 0; box-shadow: var(--shadow); }
+  .search-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+  .field-row { display: flex; align-items: center; gap: 10px; }
+  .field-label { font-size: 13px; color: var(--text-sub); font-weight: 600; white-space: nowrap; min-width: 70px; }
+  .field-input { flex: 1; border: 1px solid var(--border); border-radius: 5px; padding: 8px 12px; font-size: 13px; outline: none; transition: border-color 0.2s; background: #fafcff; }
+  .field-input:focus { border-color: var(--accent); background: #fff; }
+  .search-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .btn-reset { padding: 9px 20px; border: 1px solid var(--border); background: var(--white); border-radius: 5px; cursor: pointer; font-size: 13px; color: var(--text-sub); transition: all 0.2s; }
+  .btn-reset:hover { background: var(--bg); }
+  .btn-search { padding: 9px 28px; border: none; background: var(--accent); border-radius: 5px; cursor: pointer; font-size: 13px; color: #fff; font-weight: 700; transition: background 0.2s; }
+  .btn-search:hover { background: var(--navy-mid); }
+
+  .results-area { margin: 16px 24px 0; }
+  .results-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .results-count { font-size: 13px; color: var(--text-sub); }
+  .results-count strong { color: var(--accent); font-weight: 700; }
+  .per-page-wrap { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
+  .per-page-select { border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 13px; }
+
+  .results-table { width: 100%; border-collapse: collapse; background: var(--white); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); }
+  .results-table thead { background: var(--navy); }
+  .results-table th { padding: 11px 12px; color: #fff; font-size: 12px; font-weight: 600; text-align: left; white-space: nowrap; }
+  .results-table th:first-child { padding-left: 16px; }
+  .results-table tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+  .results-table tbody tr:hover { background: var(--row-hover); }
+  .results-table tbody tr.selected { background: var(--accent-light); }
+  .results-table td { padding: 10px 12px; font-size: 13px; vertical-align: top; }
+  .results-table td:first-child { padding-left: 16px; }
+  .td-ref { font-size: 12px; color: var(--text-sub); white-space: nowrap; }
+  .td-date { font-size: 12px; color: var(--text-sub); white-space: nowrap; }
+  .td-hs { font-family: monospace; font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .name-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .img-badge { display: inline-block; background: var(--accent-light); color: var(--accent); font-size: 11px; font-weight: 700; border-radius: 10px; padding: 2px 8px; }
+
+  .detail-panel { background: var(--white); border: 1px solid var(--border); border-radius: 8px; margin: 16px 24px; box-shadow: var(--shadow); overflow: hidden; display: none; }
+  .detail-panel.show { display: block; }
+  .detail-header { background: var(--navy); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .detail-header-title { color: #fff; font-size: 14px; font-weight: 700; }
+  .detail-close { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 18px; padding: 2px 6px; }
+  .detail-close:hover { color: #fff; }
+  .detail-table { width: 100%; border-collapse: collapse; }
+  .detail-table tr { border-bottom: 1px solid var(--border); }
+  .detail-table tr:last-child { border-bottom: none; }
+  .detail-table th { background: #f8fafd; padding: 12px 16px; font-size: 13px; font-weight: 600; color: var(--text-sub); text-align: left; width: 120px; white-space: nowrap; vertical-align: top; border-right: 1px solid var(--border); }
+  .detail-table td { padding: 12px 16px; font-size: 13px; line-height: 1.75; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+  .detail-hs-badge { display: inline-block; background: var(--accent); color: #fff; font-family: monospace; font-size: 15px; font-weight: 700; border-radius: 5px; padding: 4px 14px; }
+  .detail-img-link { color: var(--accent); text-decoration: none; margin-right: 12px; }
+  .detail-img-link:hover { text-decoration: underline; }
+  .detail-loading { padding: 20px 16px; color: var(--text-sub); font-size: 13px; }
+
+  .pagination { display: flex; justify-content: center; gap: 4px; margin: 18px 0 24px; flex-wrap: wrap; }
+  .pg-btn { width: 34px; height: 34px; border: 1px solid var(--border); background: var(--white); border-radius: 5px; cursor: pointer; font-size: 13px; color: var(--text-sub); transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
+  .pg-btn:hover:not(:disabled) { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+  .pg-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  .pg-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .loading-overlay { text-align: center; padding: 60px 20px; color: var(--text-sub); }
+  .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-sub); }
+
+  @media (max-width: 768px) {
+    .header { padding: 14px 16px; }
+    .search-panel { margin: 12px 12px 0; padding: 14px; }
+    .search-grid { grid-template-columns: 1fr; }
+    .results-area, .detail-panel { margin: 12px 12px; }
+    .tabs-bar { padding: 0 8px; overflow-x: auto; }
+    .tab-btn { padding: 12px 14px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-logo">근원 관세컨설팅 그룹</span>
+  <span class="header-sep">|</span>
+  <span class="header-title">품목분류 사례 조회</span>
+</div>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="switchTab(0)">위원회결정사항</button>
+  <button class="tab-btn" onclick="switchTab(1)">협의회결정사항</button>
+  <button class="tab-btn" onclick="switchTab(2)">품목분류사례</button>
+</div>
+
+<div class="search-panel">
+  <div class="search-grid">
+    <div class="field-row">
+      <span class="field-label">참조번호</span>
+      <input class="field-input" id="f_ref" type="text" placeholder="예) 품목분류1과-1366">
+    </div>
+    <div class="field-row">
+      <span class="field-label">결정세번</span>
+      <input class="field-input" id="f_hs" type="text" placeholder="예) 9018.90">
+    </div>
+    <div class="field-row">
+      <span class="field-label">품명</span>
+      <input class="field-input" id="f_name" type="text" placeholder="품명 키워드">
+    </div>
+    <div class="field-row">
+      <span class="field-label">시행일자</span>
+      <input class="field-input" id="f_date_from" type="date" style="max-width:155px">
+      <span style="color:var(--text-sub);font-size:13px;flex-shrink:0">~</span>
+      <input class="field-input" id="f_date_to" type="date" style="max-width:155px">
+    </div>
+    <div class="field-row" style="grid-column:1/-1">
+      <span class="field-label">통합검색</span>
+      <input class="field-input" id="f_keyword" type="text" placeholder="품명·물품설명·결정사유 전체 키워드 검색">
+    </div>
+  </div>
+  <div class="search-actions">
+    <button class="btn-reset" onclick="resetSearch()">↺ 초기화</button>
+    <button class="btn-search" onclick="doSearch()">🔍 조회</button>
+  </div>
+</div>
+
+<div class="results-area">
+  <div class="results-meta">
+    <div class="results-count">전체 <strong id="totalCount">-</strong> 건</div>
+    <div class="per-page-wrap">
+      페이지당
+      <select class="per-page-select" id="perPageSelect" onchange="changePerPage()">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>건
+    </div>
+  </div>
+  <div id="tableWrap">
+    <div class="loading-overlay"><div class="spinner"></div><br>데이터 로딩 중...</div>
+  </div>
+</div>
+
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <span class="detail-header-title" id="detailTitle">상세보기</span>
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div id="detailBody"><table class="detail-table" id="detailTable"></table></div>
+</div>
+
+<div class="pagination" id="pagination"></div>
+
+<script>
+// ── 탭 설정 ──────────────────────────────────────────────
+var TABS = ['위원회 결정사항', '협의회 결정사항', '품목분류 결정사례'];
+var DET_VARS  = ['DET_COMMITTEE', 'DET_COUNCIL', null]; // null = split A/B
+var DET_FILES = ['customs_det_committee.js', 'customs_det_council.js', null];
+var CASE_MID  = 5456; // 품목분류사례 A/B 분할점
+
+// ── 상태 ─────────────────────────────────────────────────
+var IDX = null;          // 목록 인덱스 (customs_index.js)
+var detLoaded = {};      // 탭별 상세 로드 여부
+var detData   = {};      // 탭별 상세 데이터 캐시
+
+var currentTab  = 0;
+var currentRes  = [];
+var currentPage = 1;
+var perPage     = 10;
+var selectedKey = null;
+
+// ── 스크립트 로더 ─────────────────────────────────────────
+function loadScript(src, cb) {
+  var s = document.createElement('script');
+  s.src = src;
+  s.onload = cb;
+  s.onerror = function() { alert('파일 로드 실패: ' + src + '\n같은 폴더에 파일이 있는지 확인해 주세요.'); };
+  document.head.appendChild(s);
+}
+
+// ── 초기 로드 ─────────────────────────────────────────────
+loadScript('customs_index.js', function() {
+  IDX = window.IDX;
+  doSearch();
+});
+
+// ── 탭 전환 ──────────────────────────────────────────────
+function switchTab(idx) {
+  currentTab = idx;
+  document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+    b.classList.toggle('active', i === idx);
+  });
+  closeDetail();
+  resetSearch(true);
+}
+
+// ── 검색 ─────────────────────────────────────────────────
+function resetSearch(silent) {
+  ['f_ref','f_hs','f_name','f_date_from','f_date_to','f_keyword'].forEach(function(id) {
+    document.getElementById(id).value = '';
+  });
+  if (!silent) doSearch();
+}
+
+function doSearch() {
+  if (!IDX) return;
+  var tabKey  = TABS[currentTab];
+  var pool    = IDX[tabKey] || [];
+
+  var ref      = document.getElementById('f_ref').value.trim().toLowerCase();
+  var hs       = document.getElementById('f_hs').value.trim().replace(/[-.\s]/g,'');
+  var name     = document.getElementById('f_name').value.trim().toLowerCase();
+  var dateFrom = document.getElementById('f_date_from').value;
+  var dateTo   = document.getElementById('f_date_to').value;
+  var kw       = document.getElementById('f_keyword').value.trim().toLowerCase();
+
+  currentRes = pool.filter(function(r) {
+    if (ref  && !r.r.toLowerCase().includes(ref)) return false;
+    if (hs   && !r.h.replace(/[-.\s]/g,'').includes(hs)) return false;
+    if (name && !r.n.toLowerCase().includes(name)) return false;
+    if (dateFrom && r.d && r.d < dateFrom) return false;
+    if (dateTo   && r.d && r.d > dateTo)   return false;
+    // 통합검색: 인덱스 필드만 (상세 로드 전)
+    if (kw) {
+      var t = (r.r+r.h+r.n).toLowerCase();
+      if (!t.includes(kw)) return false;
+    }
+    return true;
+  });
+
+  currentPage = 1;
+  selectedKey = null;
+  renderTable();
+  renderPagination();
+  closeDetail();
+}
+
+// ── 테이블 렌더 ──────────────────────────────────────────
+function renderTable() {
+  document.getElementById('totalCount').textContent = currentRes.length;
+  var start = (currentPage-1)*perPage;
+  var page  = currentRes.slice(start, start+perPage);
+  var isComm = (currentTab !== 2);
+
+  if (!IDX) {
+    document.getElementById('tableWrap').innerHTML = '<div class="loading-overlay"><div class="spinner"></div><br>데이터 로딩 중...</div>';
+    return;
+  }
+  if (page.length === 0) {
+    document.getElementById('tableWrap').innerHTML = '<div class="empty-state">📋 조회된 사례가 없습니다.</div>';
+    return;
+  }
+
+  var html = '<table class="results-table"><thead><tr>';
+  html += '<th>시행일자</th><th>참조번호</th><th>결정세번</th>';
+  if (isComm) html += '<th>연도/회</th>';
+  html += '<th>품명</th><th>이미지</th></tr></thead><tbody>';
+
+  page.forEach(function(r) {
+    var key = currentTab + '_' + r.i;
+    var sel = selectedKey === key ? ' selected' : '';
+    html += '<tr class="result-row'+sel+'" data-tab="'+currentTab+'" data-id="'+r.i+'" onclick="onRowClick(this)">';
+    html += '<td class="td-date">'+esc(r.d)+'</td>';
+    html += '<td class="td-ref">'+esc(r.r)+'</td>';
+    html += '<td class="td-hs">'+esc(r.h)+'</td>';
+    if (isComm) html += '<td class="td-date">'+(r.y?r.y+'년 제'+r.s+'회':'')+'</td>';
+    html += '<td><div class="name-text">'+esc(r.n)+'</div></td>';
+    html += '<td>'+(r.ic&&r.ic!='0'?'<span class="img-badge">'+r.ic+'</span>':'')+'</td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+// ── 행 클릭 → 상세 ───────────────────────────────────────
+function onRowClick(tr) {
+  var tabIdx = parseInt(tr.getAttribute('data-tab'));
+  var id     = parseInt(tr.getAttribute('data-id'));
+  var key    = tabIdx + '_' + id;
+
+  selectedKey = key;
+  document.querySelectorAll('.result-row').forEach(function(r) {
+    r.classList.toggle('selected', r.getAttribute('data-tab')+'_'+r.getAttribute('data-id') === key);
+  });
+
+  // 인덱스 데이터
+  var tabKey = TABS[tabIdx];
+  var idxRec = (IDX[tabKey]||[])[id];
+  if (!idxRec) return;
+
+  // 상세 패널 열기 (로딩 상태)
+  document.getElementById('detailTitle').textContent = esc(idxRec.n || idxRec.r);
+  document.getElementById('detailBody').innerHTML = '<div class="detail-loading">⏳ 상세 내용 불러오는 중...</div>';
+  var panel = document.getElementById('detailPanel');
+  panel.classList.add('show');
+  panel.scrollIntoView({behavior:'smooth', block:'start'});
+
+  // 상세 데이터 로드 후 렌더
+  loadDetail(tabIdx, id, function(det) {
+    renderDetail(idxRec, det, tabIdx);
+  });
+}
+
+// ── 상세 데이터 로드 (캐시) ──────────────────────────────
+function loadDetail(tabIdx, id, cb) {
+  if (tabIdx === 0) {
+    ensureLoaded('DET_COMMITTEE', 'customs_det_committee.js', function() {
+      cb(window.DET_COMMITTEE[id]);
+    });
+  } else if (tabIdx === 1) {
+    ensureLoaded('DET_COUNCIL', 'customs_det_council.js', function() {
+      cb(window.DET_COUNCIL[id]);
+    });
+  } else {
+    // 품목분류사례: A/B 분할
+    if (id < CASE_MID) {
+      ensureLoaded('DET_CASE_A', 'customs_det_case_a.js', function() {
+        cb(window.DET_CASE_A[id]);
+      });
+    } else {
+      ensureLoaded('DET_CASE_B', 'customs_det_case_b.js', function() {
+        cb(window.DET_CASE_B[id - CASE_MID]);
+      });
+    }
+  }
+}
+
+function ensureLoaded(varName, file, cb) {
+  if (window[varName]) { cb(); return; }
+  loadScript(file, cb);
+}
+
+// ── 상세 렌더 ────────────────────────────────────────────
+function renderDetail(idx, det, tabIdx) {
+  var rows = [];
+  rows.push(['참조번호', esc(idx.r)]);
+  rows.push(['시행일자', esc(idx.d)]);
+  if (tabIdx < 2 && idx.y) rows.push(['연도/회', esc(idx.y)+'년 제'+esc(idx.s)+'회']);
+  rows.push(['결정세번', '<span class="detail-hs-badge">'+esc(idx.h)+'</span>']);
+  rows.push(['품명', esc(idx.n)]);
+  if (det) {
+    if (det.dc) rows.push(['물품설명', esc(det.dc)]);
+    if (det.rs) rows.push(['결정사유', esc(det.rs)]);
+    if (det.iu) {
+      var links = det.iu.split('\n').map(function(u,i) {
+        u = u.trim();
+        return u ? '<a class="detail-img-link" href="'+u+'" target="_blank">이미지 '+(i+1)+'</a>' : '';
+      }).join('');
+      rows.push(['관련이미지', links]);
+    }
+  }
+
+  var html = rows.map(function(r) {
+    return '<tr><th>'+r[0]+'</th><td>'+r[1]+'</td></tr>';
+  }).join('');
+  document.getElementById('detailBody').innerHTML = '<table class="detail-table">'+html+'</table>';
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('show');
+  selectedKey = null;
+  document.querySelectorAll('.result-row').forEach(function(r) { r.classList.remove('selected'); });
+}
+
+// ── 페이지네이션 ─────────────────────────────────────────
+function renderPagination() {
+  var total = Math.ceil(currentRes.length / perPage);
+  var pg = document.getElementById('pagination');
+  if (total <= 1) { pg.innerHTML = ''; return; }
+
+  var cur = currentPage;
+  var html = '';
+  html += '<button class="pg-btn" onclick="goPage(1)" '+(cur<=1?'disabled':'')+'>«</button>';
+  html += '<button class="pg-btn" onclick="goPage('+(cur-1)+')" '+(cur<=1?'disabled':'')+'>‹</button>';
+  var s = Math.max(1, cur-4), e = Math.min(total, cur+4);
+  for (var p = s; p <= e; p++) {
+    html += '<button class="pg-btn'+(p===cur?' active':'')+'" onclick="goPage('+p+')">'+p+'</button>';
+  }
+  html += '<button class="pg-btn" onclick="goPage('+(cur+1)+')" '+(cur>=total?'disabled':'')+'>›</button>';
+  html += '<button class="pg-btn" onclick="goPage('+total+')" '+(cur>=total?'disabled':'')+'>»</button>';
+  pg.innerHTML = html;
+}
+
+function goPage(p) {
+  var total = Math.ceil(currentRes.length / perPage);
+  if (p < 1 || p > total) return;
+  currentPage = p;
+  renderTable();
+  renderPagination();
+  closeDetail();
+  document.querySelector('.results-area').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function changePerPage() {
+  perPage = parseInt(document.getElementById('perPageSelect').value);
+  currentPage = 1;
+  renderTable();
+  renderPagination();
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && e.target.classList.contains('field-input')) doSearch();
+});
+</script>
+</body>
+</html>
